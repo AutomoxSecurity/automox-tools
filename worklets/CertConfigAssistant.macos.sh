@@ -128,7 +128,7 @@ chmod go-wx "${tmp_path}"
 chmod +r "${tmp_path}"
 
 # copy the cert bundle to the desired destination, remove tmp bundle
-sudo mv "${tmp_path}" "${cert_file}"
+sudo cp "${tmp_path}" "${cert_file}"
 
 # iterate through and set all environment variables in global locations
 # this will place the values in global shell rc files, as well as
