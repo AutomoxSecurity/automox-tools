@@ -1,0 +1,65 @@
+name: Automox Backup Flow
+
+on:
+  schedule:
+    - cron: '*/15 * * * *' # Run every 30 minutes
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    container:
+      image: python:3.9
+    environment: Backup
+
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 2
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.9'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run Worklet Warden Script
+      run: |
+        export AUTOMOX_ORG=${{ vars.AUTOMOX_ORG }}
+        export AUTOMOX_API_KEY=${{ secrets.AUTOMOX_API_KEY }}
+        python3 worklet_warden.py sync --mode full --debug
+    
+    - name: Check for modifications and new files
+      id: git-check
+      run: |
+        # Update the below line with the correct safe directory in Github Actions
+        git config --system --add safe.directory /__w/axit-worklets/axit-worklets
+        # Check for modified files
+        modified=$(git diff --name-only)
+        # Check for new (untracked) files
+        untracked=$(git ls-files --others --exclude-standard)
+        # Combine checks
+        if [[ -n "$modified" ]] || [[ -n "$untracked" ]]; then
+          echo "Changes or new files detected."
+          echo "::set-output name=changes::true"
+        else
+          echo "No changes detected."
+          echo "::set-output name=changes::false"
+        fi
+      shell: bash
+
+    - name: Commit and Push if Changes
+      if: steps.git-check.outputs.changes == 'true'
+      run: |
+        # Update the below line with the correct safe directory in Github Actions
+        git config --system --add safe.directory /__w/axit-worklets/axit-worklets
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add .
+        git commit -m "Automated update by GitHub Actions"
+        git push
+      shell: bash
