@@ -9,30 +9,14 @@ Prerequisites
 
 ### Steps
 
-**1\)** Clone this repository
+**1\)** Clone this repository, run the `setup.sh` script and follow the on-screen instructions to modify the .env file
 ```
 git clone https://github.com/AutomoxSecurity/automox-tools.git
-```
-
-**2\)** Setup a virtual environment
-```
 cd automox-tools/audit-log-collector
-python3 -m venv venv
-source venv/bin/activate
+./setup.sh
 ```
 
-**3\)** Install the required packages
-```
-pip install -r requirements.txt
-```
-
-**4\)** Setup and populate the .env file (fill out the variables)
-```
-cp .env.example .env
-nano .env
-```
-
-**5\)** Test the script and make sure it works!
+**2\)** Test the script and make sure it works!
 ```
 python3 main.py
 ```
@@ -41,37 +25,17 @@ If it worked, you should see a `cursor.txt` file in the same directory as the sc
 
 You should also see the logs in the AWS S3 bucket you specified in the `.env` file.
 
-**6\)** Setup a cron job to run the script at your desired interval
-```
-crontab -e
-```
+**3\)** Setup a cron job to run the script at your desired interval
 
-You can use the following expression and change it to your needs:
-```
-9,19,29,39,49,59 * * * *  /Full/Path/To/venv/bin/python3 /Full/Path/To/Script/main.py >> /Full/Path/To/cron.log 2>&1
-```
+You can do this manually or by running the `install.sh` script. The `install.sh` script will create a cron job that runs the script at every 10th minute from 9 through 59.
 
-`9,19,29,39,49,59` = The cron expression. In this case, we’re saying “run this every hour at 9 minutes, 19 minutes, 29 minutes, etc”. We set it up this way for a reason (see below). If you want to run the script on a different cadence, check out https://crontab.cronhub.io/ to help you build a cron expression.
-
-`/Full/Path/To/venv/bin/python3` = Where the `python 3` binary **from your virtual environment** lives on your system. You can find this in the `venv` folder under `venv/bin/python3`. It’s important to use this binary because the script relies on non-standard Python packages only available to our virtual environment.
-
-`/Full/Path/To/main.py` = Where the script lives (where you cloned the repo to)
-
-`>>` - This is simply instructing the system to redirect and append the output from the script to a file of your choosing
-
-`/Full/Path/To/cron.log 2>&1` = Where you want to log the script’s operations. Because we included `2>&1`, both stdout and stderr will be logged. You can change this path to wherever you want to log the script’s output.
-
-For reference, here is how it looks on our test VM:
-```
-9,19,29,39,49,59 * * * * /home/parallels/automox-audit-log-collector/venv/bin/python3 /home/parallels/automox-audit-log/main.py >> /home/parallels/automox-audit-log-collector/cron.log 2>&1
-```
 
 > [!WARNING]
 > To ensure that the script is getting all of the logs, we recommend at a minimum running the cron at the end of each day at 11:59 PM. This is especially important because the script will grab logs for the current date of the time it is run. If we set our cron to run at the top of every hour, when it runs at 11PM on 7/16/2024, there’s a possibility that we’ll miss the logs between 11PM and 12AM the next day.
 > 
 > A safe bet is to run the script every 10 minutes like so:
-> 9,19,29,39,49,59 * * * *
+> 9-59/10 * * * *
 
 
-**7\)** Profit!
+**4\)** Profit!
 If you made it this far, congratulations! You now have a script that will fetch the Automox audit logs and upload them to an S3 bucket on a recurring basis. You can now use these logs to ingest into your SIEM. [Here's an example on how to do this with Rapid7](https://docs.rapid7.com/insightidr/data-collection-methods/#aws-s3).
