@@ -1,6 +1,6 @@
 # Automox Audit Log Collector Script
 
-This script fetches the audit logs from the [Automox Audit Trail API](https://developer.automox.com/openapi/audit-trail/overview/) and uploads them to an S3 bucket for your SIEM to ingest them. This script is designed to be run on a recurring basis (e.g. every 5 minutes) via a cron job.
+This script fetches the audit logs from the [Automox Audit Trail API](https://developer.automox.com/openapi/audit-trail/overview/) and uploads them to an S3 bucket for your SIEM to ingest them. This script is designed to be run on a recurring basis via a cron job.
 
 ## Setup
 
@@ -48,12 +48,12 @@ crontab -e
 
 You can use the following expression and change it to your needs:
 ```
-*/5 * * * *  /Full/Path/To/venv/bin/python3 /Full/Path/To/Script/main.py >> /Full/Path/To/cron.log 2>&1
+9,19,29,39,49,59 * * * *  /Full/Path/To/venv/bin/python3 /Full/Path/To/Script/main.py >> /Full/Path/To/cron.log 2>&1
 ```
 
-`*/5 * * * *` = The cron expression. In this case, we’re saying “run this every 5 minutes”.  If you want to run the script on a different cadence, check out https://crontab.cronhub.io/ to help you build a cron expression.
+`9,19,29,39,49,59` = The cron expression. In this case, we’re saying “run this every hour at 9 minutes, 19 minutes, 29 minutes, etc”. We set it up this way for a reason (see below). If you want to run the script on a different cadence, check out https://crontab.cronhub.io/ to help you build a cron expression.
 
-`/Full/Path/To/venv/bin/python3` = Where the `python 3` binary from your virtual environment lives on your system. You can find this in the `venv` folder under `venv/bin/python3`. It’s important to use this binary because the script relies on non-standard Python packages only available to our virtual environment.
+`/Full/Path/To/venv/bin/python3` = Where the `python 3` binary **from your virtual environment** lives on your system. You can find this in the `venv` folder under `venv/bin/python3`. It’s important to use this binary because the script relies on non-standard Python packages only available to our virtual environment.
 
 `/Full/Path/To/main.py` = Where the script lives (where you cloned the repo to)
 
@@ -63,8 +63,15 @@ You can use the following expression and change it to your needs:
 
 For reference, here is how it looks on our test VM:
 ```
-*/5 * * * * /home/parallels/automox-audit-log-collector/venv/bin/python3 /home/parallels/automox-audit-log/main.py >> /home/parallels/automox-audit-log-collector/cron.log 2>&1
+9,19,29,39,49,59 * * * * /home/parallels/automox-audit-log-collector/venv/bin/python3 /home/parallels/automox-audit-log/main.py >> /home/parallels/automox-audit-log-collector/cron.log 2>&1
 ```
+
+> [!WARNING]
+> To ensure that the script is getting all of the logs, we recommend at a minimum running the cron at the end of each day at 11:59 PM. This is especially important because the script will grab logs for the current date of the time it is run. If we set our cron to run at the top of every hour, when it runs at 11PM on 7/16/2024, there’s a possibility that we’ll miss the logs between 11PM and 12AM the next day.
+> 
+> A safe bet is to run the script every 10 minutes like so:
+> 9,19,29,39,49,59 * * * *
+
 
 **7\)** Profit!
 If you made it this far, congratulations! You now have a script that will fetch the Automox audit logs and upload them to an S3 bucket on a recurring basis. You can now use these logs to ingest into your SIEM. [Here's an example on how to do this with Rapid7](https://docs.rapid7.com/insightidr/data-collection-methods/#aws-s3).
